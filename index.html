@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kas POB AN-NUR Purwokerto</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    body { background-color: #f4f6f9; font-family: sans-serif; }
+    .card-header-custom { background-color: #1b5e20; color: white; }
+    
+    /* Format khusus saat tombol Cetak/PDF ditekan */
+    #areaCetak { display: none; }
+    @media print {
+      body * { visibility: hidden; }
+      #areaCetak, #areaCetak * { visibility: visible; }
+      #areaCetak {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background-color: white;
+        padding: 20px;
+      }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body class="py-4">
+
+  <div class="container no-print">
+    <div class="text-center mb-4">
+      <h3 class="fw-bold">POB AN-NUR Cabang Purwokerto</h3>
+      <p class="text-muted">Sistem Transparansi Keuangan Terbuka</p>
+    </div>
+
+    <!-- 1. Ringkasan Kas -->
+    <div class="row g-3 mb-4 text-center">
+      <div class="col-md-4">
+        <div class="card shadow-sm border-0 bg-white p-3">
+          <small class="text-muted">Total Kas Masuk</small>
+          <h4 class="text-success fw-bold mt-1" id="boxMasuk">Memuat...</h4>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card shadow-sm border-0 bg-white p-3">
+          <small class="text-muted">Total Kas Keluar</small>
+          <h4 class="text-danger fw-bold mt-1" id="boxKeluar">Memuat...</h4>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card shadow-sm border-0 bg-white p-3">
+          <small class="text-muted">Saldo Akhir Gabungan</small>
+          <h4 class="text-primary fw-bold mt-1" id="boxSaldo">Memuat...</h4>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Panel Cetak Laporan -->
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-secondary text-white">
+        <span class="fw-bold">Cetak Rekapitulasi Laporan Keuangan</span>
+      </div>
+      <div class="card-body">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label">Tanggal Mulai</label>
+            <input type="date" class="form-control" id="filterAwal">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Tanggal Akhir</label>
+            <input type="date" class="form-control" id="filterAkhir">
+          </div>
+          <div class="col-md-4">
+            <button class="btn btn-primary w-100" onclick="cetakLaporan()">
+              Cetak / Simpan PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Form Input Transaksi -->
+    <div class="card shadow-sm border-0">
+      <div class="card-header card-header-custom">
+        <h5 class="mb-0">Form Input Transaksi Kas</h5>
+      </div>
+      <div class="card-body p-4">
+        <div id="alertBox"></div>
+        <form id="formKas" onsubmit="handleFormSubmit(event)">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Tanggal Transaksi</label>
+              <input type="date" class="form-control" id="tanggal" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Jenis Transaksi</label>
+              <select class="form-select" id="jenis" required>
+                <option value="Pemasukan">Pemasukan (Kas Masuk)</option>
+                <option value="Pengeluaran">Pengeluaran (Kas Keluar)</option>
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Pos Alokasi Dana</label>
+              <select class="form-select" id="posDana" required>
+                <option value="Kas Operasional & Konsumsi">Kas Operasional & Konsumsi</option>
+                <option value="ZIS">ZIS (Zakat, Infak, Sedekah)</option>
+                <option value="Wakaf & Pembangunan">Wakaf & Pembangunan Fisik</option>
+                <option value="Sosial & Santri">Bantuan Sosial / Pendidikan</option>
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Nominal (Rp)</label>
+              <input type="number" class="form-control" id="nominal" placeholder="Contoh: 150000" min="1" required>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Keterangan / Donatur / Penerima</label>
+              <input type="text" class="form-control" id="keterangan" placeholder="Contoh: Donatur Mas Riki / Beli beras 50kg" required>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Lampiran Bukti Nota / Kuitansi</label>
+              <input type="file" class="form-control" id="buktiFile" accept="image/*,.pdf">
+              <small class="text-muted">Maksimal 5MB (Format Foto/PDF)</small>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Nama Petugas Input</label>
+              <input type="text" class="form-control" id="petugas" placeholder="Nama Bendahara/Kasir" required>
+            </div>
+          </div>
+
+          <div class="mt-4 text-end">
+            <button type="submit" class="btn btn-success px-4" id="btnSubmit">Simpan Transaksi</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- AREA DOKUMEN CETAK RESMI -->
+  <div id="areaCetak">
+    <div class="text-center border-bottom pb-3 mb-3">
+      <h3 class="mb-0 fw-bold">LAPORAN MUTASI KEUANGAN</h3>
+      <h4 class="mb-1">POB AN-NUR CABANG PURWOKERTO</h4>
+      <p class="mb-0 small text-muted">Periode: <span id="cetakPeriode">-</span></p>
+    </div>
+
+    <table class="table table-bordered table-sm align-middle" style="font-size: 13px;">
+      <thead class="table-light text-center">
+        <tr>
+          <th>No</th>
+          <th>Tanggal</th>
+          <th>Pos Dana</th>
+          <th>Keterangan</th>
+          <th>Masuk (Rp)</th>
+          <th>Keluar (Rp)</th>
+          <th>Petugas</th>
+        </tr>
+      </thead>
+      <tbody id="isiTabelCetak"></tbody>
+      <tfoot>
+        <tr class="fw-bold bg-light">
+          <td colspan="4" class="text-end">Total Periode Ini:</td>
+          <td class="text-success text-end" id="cetakTotalMasuk">Rp 0</td>
+          <td class="text-danger text-end" id="cetakTotalKeluar">Rp 0</td>
+          <td></td>
+        </tr>
+        <tr class="fw-bold">
+          <td colspan="4" class="text-end">Surplus / Defisit:</td>
+          <td colspan="3" class="text-primary text-end" id="cetakSaldoBersih">Rp 0</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <div class="row mt-5">
+      <div class="col-6 text-center">
+        <p class="mb-5">Mengetahui,<br>Pimpinan POB AN-NUR</p>
+        <p class="fw-bold">( _______________________ )</p>
+      </div>
+      <div class="col-6 text-center">
+        <p class="mb-5">Purwokerto, <span id="cetakTglHariIni"></span><br>Bendahara Cabang</p>
+        <p class="fw-bold">( _______________________ )</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT KONEKSI FETCH KE GOOGLE APPS SCRIPT -->
+  <script>
+    // ⚠️ GANTI DENGAN URL WEB APP HASIL DEPLOY APPS SCRIPT ANDA
+    const API_URL = "https://script.google.com/macros/s/AKfycbx9m_zSCIzxO5m4dwZERFFNPmD8iNXg9nHN_Lm-xRJivxAi775fCpkRqmqCg49VR6Up9A/exec";
+
+    let cacheDataTransaksi = [];
+
+    function formatRupiah(num) {
+      return "Rp " + Number(num).toLocaleString("id-ID");
+    }
+
+    // Inisialisasi tanggal default
+    const hariIni = new Date().toISOString().split("T")[0];
+    document.getElementById("tanggal").value = hariIni;
+    document.getElementById("filterAwal").value = hariIni.substring(0, 8) + "01";
+    document.getElementById("filterAkhir").value = hariIni;
+
+    // --- 1. DETAIL FETCH GET (AMBIL DATA SALDO & TRANSAKSI) ---
+    async function loadDataDariScript() {
+      try {
+        const response = await fetch(API_URL);
+        const result = await response.json();
+
+        if (result.status === "success") {
+          document.getElementById("boxMasuk").innerText = formatRupiah(result.totalMasuk);
+          document.getElementById("boxKeluar").innerText = formatRupiah(result.totalKeluar);
+          document.getElementById("boxSaldo").innerText = formatRupiah(result.saldoAkhir);
+          
+          // Simpan data transaksi untuk filter cetak
+          cacheDataTransaksi = result.data || [];
+        }
+      } catch (err) {
+        console.error("Gagal mengambil data:", err);
+        document.getElementById("boxSaldo").innerText = "Gagal memuat";
+      }
+    }
+
+    // Jalankan saat halaman pertama kali dibuka
+    loadDataDariScript();
+
+    // --- 2. DETAIL FETCH POST (KIRIM FORM & FOTO KE SCRIPT) ---
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById("btnSubmit");
+      const alertBox = document.getElementById("alertBox");
+
+      btn.disabled = true;
+      btn.innerText = "Mengunggah & Menyimpan...";
+      alertBox.innerHTML = "";
+
+      const fileInput = document.getElementById("buktiFile");
+      const file = fileInput.files[0];
+
+      // Struktur paket data yang akan dikirim
+      const payload = {
+        tanggal: document.getElementById("tanggal").value,
+        jenis: document.getElementById("jenis").value,
+        posDana: document.getElementById("posDana").value,
+        nominal: document.getElementById("nominal").value,
+        keterangan: document.getElementById("keterangan").value,
+        petugas: document.getElementById("petugas").value,
+        fileName: file ? file.name : null,
+        fileType: file ? file.type : null,
+        fileData: null
+      };
+
+      // Jika ada file foto, konversi ke Base64 terlebih dahulu
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = async function(evt) {
+          payload.fileData = evt.target.result;
+          await eksekusiKirim(payload);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        await eksekusiKirim(payload);
+      }
+    }
+
+    async function eksekusiKirim(payload) {
+      const btn = document.getElementById("btnSubmit");
+      const alertBox = document.getElementById("alertBox");
+
+      try {
+        // Kirim HTTP POST menggunakan Fetch
+        const response = await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+
+        const res = await response.json();
+
+        if (res.status === "success") {
+          alertBox.innerHTML = `<div class="alert alert-success">${res.message}</div>`;
+          document.getElementById("formKas").reset();
+          document.getElementById("tanggal").value = new Date().toISOString().split("T")[0];
+          // Refresh saldo terbaru
+          loadDataDariScript();
+        } else {
+          alertBox.innerHTML = `<div class="alert alert-danger">Gagal: ${res.message}</div>`;
+        }
+      } catch (err) {
+        alertBox.innerHTML = `<div class="alert alert-danger">Koneksi gagal: ${err.message}</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Simpan Transaksi";
+      }
+    }
+
+    // --- 3. PROSES CETAK LAPORAN DARI CACHE DATA ---
+    function cetakLaporan() {
+      const awal = document.getElementById("filterAwal").value;
+      const akhir = document.getElementById("filterAkhir").value;
+
+      if (!awal || !akhir) {
+        alert("Pilih rentang tanggal terlebih dahulu!");
+        return;
+      }
+
+      const barisTersaring = cacheDataTransaksi.filter(t => t.tanggal >= awal && t.tanggal <= akhir);
+
+      if (barisTersaring.length === 0) {
+        alert("Tidak ada mutasi transaksi pada rentang tanggal tersebut.");
+        return;
+      }
+
+      let totMasuk = 0;
+      let totKeluar = 0;
+      let tbody = "";
+
+      barisTersaring.forEach((t, i) => {
+        if (t.jenis === "Pemasukan") totMasuk += t.nominal;
+        if (t.jenis === "Pengeluaran") totKeluar += t.nominal;
+
+        tbody += `<tr>
+          <td class="text-center">${i + 1}</td>
+          <td>${t.tanggal}</td>
+          <td>${t.posDana}</td>
+          <td>${t.keterangan}</td>
+          <td class="text-end">${t.jenis === "Pemasukan" ? formatRupiah(t.nominal) : "-"}</td>
+          <td class="text-end">${t.jenis === "Pengeluaran" ? formatRupiah(t.nominal) : "-"}</td>
+          <td>${t.petugas}</td>
+        </tr>`;
+      });
+
+      document.getElementById("cetakPeriode").innerText = `${awal} s/d ${akhir}`;
+      document.getElementById("isiTabelCetak").innerHTML = tbody;
+      document.getElementById("cetakTotalMasuk").innerText = formatRupiah(totMasuk);
+      document.getElementById("cetakTotalKeluar").innerText = formatRupiah(totKeluar);
+      document.getElementById("cetakSaldoBersih").innerText = formatRupiah(totMasuk - totKeluar);
+      document.getElementById("cetakTglHariIni").innerText = new Date().toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' });
+
+      // Munculkan dialog cetak/PDF browser
+      window.print();
+    }
+  </script>
+</body>
+</html>
