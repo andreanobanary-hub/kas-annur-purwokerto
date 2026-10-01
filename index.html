@@ -9,7 +9,7 @@
     body { background-color: #f4f6f9; font-family: sans-serif; }
     .card-header-custom { background-color: #1b5e20; color: white; }
     
-    /* Format khusus saat tombol Cetak/PDF ditekan */
+    /* Pengaturan Cetak/PDF */
     #areaCetak { display: none; }
     @media print {
       body * { visibility: hidden; }
@@ -57,38 +57,18 @@
       </div>
     </div>
 
-    <!-- 2. Panel Cetak Laporan -->
+    <!-- 2. Form Input & Edit Transaksi -->
     <div class="card shadow-sm border-0 mb-4">
-      <div class="card-header bg-secondary text-white">
-        <span class="fw-bold">Cetak Rekapitulasi Laporan Keuangan</span>
-      </div>
-      <div class="card-body">
-        <div class="row g-3 align-items-end">
-          <div class="col-md-4">
-            <label class="form-label">Tanggal Mulai</label>
-            <input type="date" class="form-control" id="filterAwal">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Tanggal Akhir</label>
-            <input type="date" class="form-control" id="filterAkhir">
-          </div>
-          <div class="col-md-4">
-            <button class="btn btn-primary w-100" onclick="cetakLaporan()">
-              Cetak / Simpan PDF
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 3. Form Input Transaksi -->
-    <div class="card shadow-sm border-0">
-      <div class="card-header card-header-custom">
-        <h5 class="mb-0">Form Input Transaksi Kas</h5>
+      <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
+        <h5 class="mb-0" id="formJudul">Form Input Transaksi Kas</h5>
+        <span class="badge bg-warning text-dark" id="badgeMode" style="display:none;">Mode Edit</span>
       </div>
       <div class="card-body p-4">
         <div id="alertBox"></div>
         <form id="formKas" onsubmit="handleFormSubmit(event)">
+          <!-- Hidden input untuk menampung ID saat Edit -->
+          <input type="hidden" id="editIdTrx" value="">
+
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label">Tanggal Transaksi</label>
@@ -118,31 +98,84 @@
             </div>
 
             <div class="col-12">
-              <label class="form-label">Keterangan / Donatur / Penerima</label>
-              <input type="text" class="form-control" id="keterangan" placeholder="Contoh: Donatur Mas Riki / Beli beras 50kg" required>
+              <label class="form-label">Keterangan / Donatur / Rincian</label>
+              <input type="text" class="form-control" id="keterangan" placeholder="Contoh: Infak Donatur Mas Riki / Beli beras 50kg" required>
             </div>
 
             <div class="col-md-6">
               <label class="form-label">Lampiran Bukti Nota / Kuitansi</label>
               <input type="file" class="form-control" id="buktiFile" accept="image/*,.pdf">
-              <small class="text-muted">Maksimal 5MB (Format Foto/PDF)</small>
+              <small class="text-muted" id="infoBukti">Maksimal 5MB (Kosongkan jika tidak ingin mengubah nota saat edit)</small>
             </div>
 
             <div class="col-md-6">
               <label class="form-label">Nama Petugas Input</label>
-              <input type="text" class="form-control" id="petugas" placeholder="Nama Bendahara/Kasir" required>
+              <input type="text" class="form-control" id="petugas" placeholder="Nama Petugas/Bendahara" required>
             </div>
           </div>
 
-          <div class="mt-4 text-end">
+          <!-- Tombol Aksi Form -->
+          <div class="mt-4 d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">Reset Form</button>
             <button type="submit" class="btn btn-success px-4" id="btnSubmit">Simpan Transaksi</button>
           </div>
         </form>
       </div>
     </div>
+
+    <!-- 3. Panel Cetak & Filter -->
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-secondary text-white">
+        <span class="fw-bold">Cetak Rekapitulasi Laporan Keuangan</span>
+      </div>
+      <div class="card-body">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label">Tanggal Mulai</label>
+            <input type="date" class="form-control" id="filterAwal">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Tanggal Akhir</label>
+            <input type="date" class="form-control" id="filterAkhir">
+          </div>
+          <div class="col-md-4">
+            <button class="btn btn-primary w-100" onclick="cetakLaporan()">
+              Cetak / Simpan PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Tabel Kelola Riwayat Transaksi -->
+    <div class="card shadow-sm border-0 mb-5">
+      <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <span class="fw-bold">Riwayat Transaksi (Kelola & Edit/Hapus)</span>
+        <button class="btn btn-sm btn-outline-light" onclick="loadDataDariScript()">🔄 Segarkan Data</button>
+      </div>
+      <div class="card-body p-0 table-responsive">
+        <table class="table table-hover table-striped align-middle mb-0" style="font-size: 14px;">
+          <thead class="table-light">
+            <tr>
+              <th>Tanggal</th>
+              <th>Jenis</th>
+              <th>Pos Dana</th>
+              <th>Keterangan</th>
+              <th class="text-end">Nominal</th>
+              <th class="text-center">Bukti</th>
+              <th>Petugas</th>
+              <th class="text-center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tabelRiwayatBody">
+            <tr><td colspan="8" class="text-center py-4">Memuat riwayat transaksi...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
-  <!-- AREA DOKUMEN CETAK RESMI -->
+  <!-- AREA CETAK LAPORAN RESMI (PDF/Print) -->
   <div id="areaCetak">
     <div class="text-center border-bottom pb-3 mb-3">
       <h3 class="mb-0 fw-bold">LAPORAN MUTASI KEUANGAN</h3>
@@ -189,7 +222,7 @@
     </div>
   </div>
 
-  <!-- SCRIPT KONEKSI FETCH KE GOOGLE APPS SCRIPT -->
+  <!-- JAVASCRIPT LOGIKA KONEKSI & AKSI -->
   <script>
     // ⚠️ GANTI DENGAN URL WEB APP HASIL DEPLOY APPS SCRIPT ANDA
     const API_URL = "https://script.google.com/macros/s/AKfycbx9m_zSCIzxO5m4dwZERFFNPmD8iNXg9nHN_Lm-xRJivxAi775fCpkRqmqCg49VR6Up9A/exec";
@@ -200,13 +233,12 @@
       return "Rp " + Number(num).toLocaleString("id-ID");
     }
 
-    // Inisialisasi tanggal default
     const hariIni = new Date().toISOString().split("T")[0];
     document.getElementById("tanggal").value = hariIni;
     document.getElementById("filterAwal").value = hariIni.substring(0, 8) + "01";
     document.getElementById("filterAkhir").value = hariIni;
 
-    // --- 1. DETAIL FETCH GET (AMBIL DATA SALDO & TRANSAKSI) ---
+    // --- 1. AMBIL DATA DARI BACKEND ---
     async function loadDataDariScript() {
       try {
         const response = await fetch(API_URL);
@@ -217,8 +249,8 @@
           document.getElementById("boxKeluar").innerText = formatRupiah(result.totalKeluar);
           document.getElementById("boxSaldo").innerText = formatRupiah(result.saldoAkhir);
           
-          // Simpan data transaksi untuk filter cetak
           cacheDataTransaksi = result.data || [];
+          renderTabelRiwayat(cacheDataTransaksi);
         }
       } catch (err) {
         console.error("Gagal mengambil data:", err);
@@ -226,24 +258,128 @@
       }
     }
 
-    // Jalankan saat halaman pertama kali dibuka
-    loadDataDariScript();
+    // Render tabel di layar dengan tombol Edit & Hapus
+    function renderTabelRiwayat(data) {
+      const tbody = document.getElementById("tabelRiwayatBody");
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-3 text-muted">Belum ada transaksi.</td></tr>`;
+        return;
+      }
 
-    // --- 2. DETAIL FETCH POST (KIRIM FORM & FOTO KE SCRIPT) ---
+      let html = "";
+      data.forEach(trx => {
+        const isMasuk = trx.jenis === "Pemasukan";
+        const badgeJenis = isMasuk 
+          ? `<span class="badge bg-success-subtle text-success border border-success">Masuk</span>`
+          : `<span class="badge bg-danger-subtle text-danger border border-danger">Keluar</span>`;
+        
+        const buktiLink = (trx.bukti && trx.bukti.startsWith("http")) 
+          ? `<a href="${trx.bukti}" target="_blank" class="btn btn-sm btn-outline-info py-0">Nota</a>`
+          : `<span class="text-muted">-</span>`;
+
+        // Simpan data trx ke atribut tombol untuk memudahkan edit
+        const trxJson = encodeURIComponent(JSON.stringify(trx));
+
+        html += `
+          <tr>
+            <td>${trx.tanggal}</td>
+            <td>${badgeJenis}</td>
+            <td>${trx.posDana}</td>
+            <td>${trx.keterangan}</td>
+            <td class="text-end fw-bold ${isMasuk ? 'text-success' : 'text-danger'}">${formatRupiah(trx.nominal)}</td>
+            <td class="text-center">${buktiLink}</td>
+            <td><small>${trx.petugas}</small></td>
+            <td class="text-center">
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-primary" onclick="siapkanEdit('${trxJson}')" title="Edit">✏️</button>
+                <button class="btn btn-outline-danger" onclick="hapusTransaksi('${trx.id}')" title="Hapus">🗑️</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    }
+
+    // --- 2. FITUR EDIT TRANSAKSI ---
+    function siapkanEdit(trxEncoded) {
+      const trx = JSON.parse(decodeURIComponent(trxEncoded));
+      
+      document.getElementById("editIdTrx").value = trx.id;
+      document.getElementById("tanggal").value = trx.tanggal;
+      document.getElementById("jenis").value = trx.jenis;
+      document.getElementById("posDana").value = trx.posDana;
+      document.getElementById("nominal").value = trx.nominal;
+      document.getElementById("keterangan").value = trx.keterangan;
+      document.getElementById("petugas").value = trx.petugas;
+
+      // Ubah tampilan form ke mode Edit
+      document.getElementById("formJudul").innerText = "Edit Transaksi (" + trx.id + ")";
+      document.getElementById("badgeMode").style.display = "inline-block";
+      document.getElementById("btnSubmit").innerText = "Perbarui Transaksi";
+      document.getElementById("btnSubmit").className = "btn btn-warning px-4";
+
+      // Scroll halus ke form
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // --- 3. FITUR RESET FORM ---
+    function resetForm() {
+      document.getElementById("formKas").reset();
+      document.getElementById("editIdTrx").value = "";
+      document.getElementById("tanggal").value = hariIni;
+      document.getElementById("formJudul").innerText = "Form Input Transaksi Kas";
+      document.getElementById("badgeMode").style.display = "none";
+      document.getElementById("btnSubmit").innerText = "Simpan Transaksi";
+      document.getElementById("btnSubmit").className = "btn btn-success px-4";
+      document.getElementById("alertBox").innerHTML = "";
+    }
+
+    // --- 4. FITUR HAPUS TRANSAKSI ---
+    async function hapusTransaksi(idTrx) {
+      if (!confirm("Apakah Anda yakin ingin menghapus transaksi " + idTrx + "? Data di spreadsheet akan terhapus.")) {
+        return;
+      }
+
+      const alertBox = document.getElementById("alertBox");
+      alertBox.innerHTML = `<div class="alert alert-info">Menghapus data...</div>`;
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "delete", idTrx: idTrx })
+        });
+        const res = await response.json();
+
+        if (res.status === "success") {
+          alertBox.innerHTML = `<div class="alert alert-success">${res.message}</div>`;
+          loadDataDariScript();
+        } else {
+          alertBox.innerHTML = `<div class="alert alert-danger">Gagal menghapus: ${res.message}</div>`;
+        }
+      } catch (err) {
+        alertBox.innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
+      }
+    }
+
+    // --- 5. SIMPAN (CREATE ATAU UPDATE) ---
     async function handleFormSubmit(e) {
       e.preventDefault();
       const btn = document.getElementById("btnSubmit");
       const alertBox = document.getElementById("alertBox");
+      const idTrx = document.getElementById("editIdTrx").value;
+      const isEdit = idTrx !== "";
 
       btn.disabled = true;
-      btn.innerText = "Mengunggah & Menyimpan...";
+      btn.innerText = isEdit ? "Memperbarui..." : "Menyimpan...";
       alertBox.innerHTML = "";
 
       const fileInput = document.getElementById("buktiFile");
       const file = fileInput.files[0];
 
-      // Struktur paket data yang akan dikirim
       const payload = {
+        action: isEdit ? "edit" : "create",
+        idTrx: idTrx,
         tanggal: document.getElementById("tanggal").value,
         jenis: document.getElementById("jenis").value,
         posDana: document.getElementById("posDana").value,
@@ -255,37 +391,32 @@
         fileData: null
       };
 
-      // Jika ada file foto, konversi ke Base64 terlebih dahulu
       if (file) {
         const reader = new FileReader();
         reader.onload = async function(evt) {
           payload.fileData = evt.target.result;
-          await eksekusiKirim(payload);
+          await eksekusiSimpan(payload);
         };
         reader.readAsDataURL(file);
       } else {
-        await eksekusiKirim(payload);
+        await eksekusiSimpan(payload);
       }
     }
 
-    async function eksekusiKirim(payload) {
+    async function eksekusiSimpan(payload) {
       const btn = document.getElementById("btnSubmit");
       const alertBox = document.getElementById("alertBox");
 
       try {
-        // Kirim HTTP POST menggunakan Fetch
         const response = await fetch(API_URL, {
           method: "POST",
           body: JSON.stringify(payload)
         });
-
         const res = await response.json();
 
         if (res.status === "success") {
           alertBox.innerHTML = `<div class="alert alert-success">${res.message}</div>`;
-          document.getElementById("formKas").reset();
-          document.getElementById("tanggal").value = new Date().toISOString().split("T")[0];
-          // Refresh saldo terbaru
+          resetForm();
           loadDataDariScript();
         } else {
           alertBox.innerHTML = `<div class="alert alert-danger">Gagal: ${res.message}</div>`;
@@ -294,11 +425,10 @@
         alertBox.innerHTML = `<div class="alert alert-danger">Koneksi gagal: ${err.message}</div>`;
       } finally {
         btn.disabled = false;
-        btn.innerText = "Simpan Transaksi";
       }
     }
 
-    // --- 3. PROSES CETAK LAPORAN DARI CACHE DATA ---
+    // --- 6. CETAK LAPORAN ---
     function cetakLaporan() {
       const awal = document.getElementById("filterAwal").value;
       const akhir = document.getElementById("filterAkhir").value;
@@ -319,7 +449,10 @@
       let totKeluar = 0;
       let tbody = "";
 
-      barisTersaring.forEach((t, i) => {
+      // Cetak urut dari yang terlama ke terbaru
+      const urutCetak = [...barisTersaring].reverse();
+
+      urutCetak.forEach((t, i) => {
         if (t.jenis === "Pemasukan") totMasuk += t.nominal;
         if (t.jenis === "Pengeluaran") totKeluar += t.nominal;
 
@@ -341,9 +474,11 @@
       document.getElementById("cetakSaldoBersih").innerText = formatRupiah(totMasuk - totKeluar);
       document.getElementById("cetakTglHariIni").innerText = new Date().toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' });
 
-      // Munculkan dialog cetak/PDF browser
       window.print();
     }
+
+    // Muat data saat halaman dibuka
+    loadDataDariScript();
   </script>
 </body>
 </html>
